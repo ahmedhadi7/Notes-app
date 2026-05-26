@@ -7,6 +7,7 @@ import 'package:firebasee/component/alert.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' show basename;
+import 'dart:io';
 
 class Addnotes extends StatefulWidget {
   const Addnotes({super.key});
@@ -25,6 +26,14 @@ class _AddnotesState extends State<Addnotes> {
   var title, note, imageurl;
 
   GlobalKey<FormState> formstate = GlobalKey<FormState>();
+
+  //  دالة حذف الصورة المختارة
+  void removeImage() {
+    setState(() {
+      pickedImage = null;
+      ref = null;
+    });
+  }
 
   Future<bool> addNote(BuildContext context) async {
     if (pickedImage == null) {
@@ -79,15 +88,16 @@ class _AddnotesState extends State<Addnotes> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Add Notes')),
-      body: Padding(
-        padding: EdgeInsetsGeometry.all(40),
-        child: Column(
-          children: [
-            Form(
-              key: formstate,
-              child: Column(
-                children: [
-                  TextFormField(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.all(40),
+          child: Form(
+            key: formstate,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
                         return "please enter title";
@@ -100,7 +110,6 @@ class _AddnotesState extends State<Addnotes> {
                       }
                       return null;
                     },
-
                     onSaved: (val) {
                       title = val;
                     },
@@ -112,7 +121,7 @@ class _AddnotesState extends State<Addnotes> {
                       prefixIcon: Icon(Icons.note),
                     ),
                   ),
-                  TextFormField(
+                TextFormField(
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
                         return "please enter note";
@@ -137,34 +146,74 @@ class _AddnotesState extends State<Addnotes> {
                       prefixIcon: Icon(Icons.edit),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-                  ElevatedButton(
+                  // ② عرض الصورة إذا تم اختيارها
+                  if (pickedImage != null) ...[
+                    Stack(
+                      children: [
+                        // الصورة
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            File(pickedImage!.path),
+                            width: double.infinity,
+                            height: 180,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        // ③ زر الحذف فوق الصورة
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: InkWell(
+                            onTap: removeImage,
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
+                ElevatedButton(
                     onPressed: () {
                       showBottomSheet();
                     },
-                    child: Text("add image for note"),
+                    // ④ تغيير نص الزر حسب الحالة
+                    child: Text(
+                      pickedImage == null ? "add image for note" : "change image",
+                    ),
                   ),
-                  const SizedBox(height: 5),
-                ],
-              ),
+                const SizedBox(height: 5),
+                ElevatedButton(
+                  onPressed: () async {
+                    final added = await addNote(context);
+                    if (!context.mounted) return;
+                    if (added) {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        Navigator.of(context).pushReplacementNamed("homepage");
+                      }
+                    }
+                  },
+                  child: Text("add Note"),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final added = await addNote(context);
-                if (!context.mounted) return;
-                if (added) {
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).pop();
-                  } else {
-                    Navigator.of(context).pushReplacementNamed("homepage");
-                  }
-                }
-              },
-
-              child: Text("add Note"),
-            ),
-          ],
+          ),
         ),
       ),
     );

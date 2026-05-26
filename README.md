@@ -1,70 +1,200 @@
-# Notes App Flutter Firebase
+# 📝 Notes App — Flutter & Firebase
 
-A Flutter notes application connected to Firebase. The app supports user authentication and lets each signed-in user create, view, edit, and manage their own notes.
+A full-featured **Notes mobile application** built with Flutter and Firebase. Users can register, log in, and manage personal notes with image attachments — all synced in real-time to the cloud.
 
-## Features
+---
 
-- Email and password authentication with Firebase Auth
-- User-specific notes stored in Cloud Firestore
-- Add, view, edit, and delete notes
-- Firebase initialization with FlutterFire
-- Firebase Cloud Messaging background handler
-- Cross-platform Flutter project structure
+## 📱 Screenshots
 
-## Tech Stack
+> _Coming soon_
 
-- Flutter
-- Dart
-- Firebase Auth
-- Cloud Firestore
-- Firebase Core
-- Firebase Messaging
-- Firebase Storage
+---
 
-## Project Structure
+## ✨ Features
 
-```text
-lib/
-  main.dart
-  login.dart
-  signup.dart
-  homepage.dart
-  coud/
-    addnotes.dart
-    editnodes.dart
-    viewnotes.dart
-  component/
-    alert.dart
+- 🔐 **Authentication** — Register & Login with Email/Password via Firebase Auth
+- 📝 **Create Notes** — Add notes with a title, content, and an image
+- 🖼️ **Image Upload** — Pick images from Gallery or Camera, uploaded to Firebase Storage
+- ✏️ **Edit Notes** — Update title, content, or replace the image
+- 🗑️ **Delete Notes** — Swipe to delete; removes both Firestore document and Storage image
+- 👁️ **View Notes** — Full detail screen for each note
+- ⚡ **Real-time Sync** — Notes update instantly using Firestore Streams
+- 🔔 **Push Notifications** — Firebase Cloud Messaging (FCM) support
+- 🔒 **Per-user Data** — Each user only sees their own notes (filtered by UID)
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Usage |
+|------------|-------|
+| Flutter | UI Framework |
+| Dart | Programming Language |
+| Firebase Auth | User Authentication |
+| Cloud Firestore | Real-time Database |
+| Firebase Storage | Image Storage |
+| Firebase Messaging | Push Notifications (FCM) |
+| ImagePicker | Camera & Gallery Access |
+
+---
+
+## 🗄️ Firebase Structure
+
+```
+Firebase
+│
+├── 🔐 Authentication
+│   └── Email & Password
+│
+├── 📁 Firestore Database
+│   ├── users (collection)
+│   │   └── {docId}
+│   │       ├── username: String
+│   │       └── email: String
+│   │
+│   └── notes (collection)
+│       └── {docId}
+│           ├── title: String
+│           ├── note: String
+│           ├── imageurl: String   ← Firebase Storage download URL
+│           └── userid: String     ← Owner's UID
+│
+└── 📦 Firebase Storage
+    └── images/
+        └── {randomNumber + filename}
 ```
 
-## Getting Started
+---
 
-1. Install Flutter and set up your development environment.
-2. Clone the repository.
-3. Install dependencies:
+## 📁 Project Structure
 
+```
+lib/
+├── main.dart                    # App entry point + routing + FCM background handler
+├── login.dart                   # Login screen
+├── signup.dart                  # Register screen
+├── homepage.dart                # Home screen — notes list with swipe-to-delete
+├── component/
+│   └── alert.dart               # Shared Loading & Error dialog helpers
+└── coud/
+    ├── addnotes.dart            # Add new note screen
+    ├── editnodes.dart           # Edit existing note screen
+    └── viewnotes.dart           # View note detail screen
+```
+
+---
+
+## 🔀 App Navigation Flow
+
+```
+Launch
+  ├── User logged in  → Homepage
+  └── Not logged in   → Login
+                           └── Sign Up ←→ Login
+                                  └── Homepage
+                                        ├── View Note
+                                        ├── Edit Note
+                                        └── Add Note (FAB)
+```
+
+---
+
+## 🔑 Key Implementation Details
+
+### Auth State Check on Launch
+```dart
+var user = FirebaseAuth.instance.currentUser;
+islogin = user != null;
+// Routes to Homepage if logged in, Login if not
+```
+
+### Notes filtered by current user
+```dart
+notesref.where("userid", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+        .snapshots()
+```
+
+### Image Upload Flow
+```dart
+// 1. Pick image
+var picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+// 2. Generate unique filename
+var nameimage = "${Random().nextInt(100000)}${basename(picked.path)}";
+// 3. Upload bytes to Storage
+await ref.putData(imageBytes, SettableMetadata(contentType: "image/jpeg"));
+// 4. Get download URL
+imageurl = await ref.getDownloadURL();
+```
+
+### Swipe-to-Delete (Dismissible)
+```dart
+Dismissible(
+  key: UniqueKey(),
+  onDismissed: (_) async {
+    await notesref.doc(docId).delete();          // Delete from Firestore
+    await FirebaseStorage.instance               // Delete image from Storage
+        .refFromURL(imageurl).delete();
+  },
+)
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Flutter SDK `>=3.0.0`
+- Dart SDK
+- Firebase project with Auth, Firestore & Storage enabled
+
+### Installation
+
+**1. Clone the repository**
+```bash
+git clone https://github.com/ahmedhadi7/notes-app-flutter.git
+cd notes-app-flutter
+```
+
+**2. Install dependencies**
 ```bash
 flutter pub get
 ```
 
-4. Configure Firebase for your own project:
-
+**3. Configure Firebase**
 ```bash
 dart pub global activate flutterfire_cli
 flutterfire configure
 ```
 
-5. Add the required Firebase platform files, such as `google-services.json` for Android and `GoogleService-Info.plist` for iOS.
-6. Run the app:
-
+**4. Run the app**
 ```bash
 flutter run
 ```
 
-## Firebase Files
+---
 
-Firebase configuration files are ignored by Git to avoid committing project-specific secrets and environment files. Generate them locally using FlutterFire before running the app.
+## 📦 Dependencies
 
-## Repository About
+```yaml
+dependencies:
+  firebase_core:
+  firebase_auth:
+  cloud_firestore:
+  firebase_storage:
+  firebase_messaging:
+  image_picker:
+  path:
+```
 
-Flutter Firebase notes app with authentication and user-specific Firestore notes.
+---
+
+## 👨‍💻 Author
+
+Ahmed Hadi
+- GitHub: [@ahmedhadi7](https://github.com/ahmedhadi7)
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
